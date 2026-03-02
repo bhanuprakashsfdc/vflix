@@ -1,0 +1,99 @@
+/* Google Fonts - must be first */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Righteous&display=swap');
+
+@import "tailwindcss";
+
+/* Netflix Clone - Custom Theme */
+@theme {
+  /* Colors */
+  --color-netflix-primary: #0F0F23;
+  --color-netflix-secondary: #1E1B4B;
+  --color-netflix-cta: #E11D48;
+  --color-netflix-background: #000000;
+  --color-netflix-text: #F8FAFC;
+  --color-netflix-dark: #141414;
+  --color-netflix-light: #E5E5E5;
+  --color-netflix-gray: #808080;
+  --color-netflix-red: #E50914;
+  --color-netflix-success: #46D369;
+
+  /* Font families */
+  --font-heading: 'Righteous', cursive;
+  --font-body: 'Poppins', sans-serif;
+
+  /* Animations */
+  --animate-fade-in: fadeIn 0.5s ease-in-out;
+  --animate-slide-up: slideUp 0.5s ease-out;
+  --animate-scale-in: scaleIn 0.3s ease-out;
+  --animate-pulse-slow: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Custom animations */
+@keyframes fadeIn {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+@keyframes slideUp {
+  0% { opacity: 0; transform: translateY(20px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes scaleIn {
+  0% { opacity: 0; transform: scale(0.95); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+/* Base styles */
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-body);
+  background-color: var(--color-netflix-background);
+  color: var(--color-netflix-text);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-netflix-dark);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-netflix-gray);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-netflix-light);
+}
+
+/* Selection */
+::selection {
+  background-color: var(--color-netflix-red);
+  color: white;
+}
+
+/* Focus states */
+:focus-visible {
+  outline: 2px solid var(--color-netflix-red);
+  outline-offset: 2px;
+}
+
+/* Utility classes */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
