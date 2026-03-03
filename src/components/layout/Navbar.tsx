@@ -36,6 +36,8 @@ export const Navbar: React.FC<NavbarProps> = ({ onSearchOpen }) => {
   const navItems = [
     { id: 'home', label: 'Home', icon: 'home' },
     { id: 'browse', label: 'Browse', icon: 'browse' },
+    { id: 'profiles', label: 'Profiles', icon: 'profile' },
+    { id: 'stats', label: 'Stats', icon: 'info' },
     { id: 'settings', label: 'Settings', icon: 'settings' },
   ] as const;
 

@@ -69,7 +69,7 @@ export interface AppState {
   searchQuery: string;
   searchResults: MediaFile[];
   isSearchOpen: boolean;
-  currentView: 'home' | 'browse' | 'player' | 'settings';
+  currentView: 'home' | 'browse' | 'profiles' | 'stats' | 'player' | 'settings';
   currentPlayingMedia: MediaFile | null;
   isPlayerFullscreen: boolean;
   isSidebarOpen: boolean;
