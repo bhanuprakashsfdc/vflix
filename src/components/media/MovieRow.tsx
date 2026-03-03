@@ -14,7 +14,7 @@ export const MovieRow: React.FC<MovieRowProps> = ({ title, media, onPlay, showPr
   const rowRef = useRef<HTMLDivElement>(null);
   const [showLeftButton, setShowLeftButton] = useState(false);
   const [showRightButton, setShowRightButton] = useState(true);
-  const [visibleCount, setVisibleCount] = useState(6);
+  const [, setVisibleCount] = useState(6);
 
   // Calculate visible items based on screen width
   useEffect(() => {

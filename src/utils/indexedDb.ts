@@ -112,6 +112,25 @@ class IndexedDBService {
     });
   }
 
+  async updateMediaMetadata(id: string, metadata: MediaFile['metadata']): Promise<void> {
+    const store = await this.getStore('media', 'readwrite');
+    return new Promise((resolve, reject) => {
+      const getRequest = store.get(id);
+      getRequest.onsuccess = () => {
+        const media = getRequest.result;
+        if (media) {
+          media.metadata = metadata;
+          const putRequest = store.put(media);
+          putRequest.onsuccess = () => resolve();
+          putRequest.onerror = () => reject(putRequest.error);
+        } else {
+          resolve();
+        }
+      };
+      getRequest.onerror = () => reject(getRequest.error);
+    });
+  }
+
   async deleteMedia(id: string): Promise<void> {
     const store = await this.getStore('media', 'readwrite');
     return new Promise((resolve, reject) => {

@@ -217,8 +217,6 @@ export function getSubtitlePaths(videoPath: string, videoName: string): string[]
   const basePath = videoPath.replace(videoName, '');
   const baseName = videoName.replace(/\.[^/.]+$/, '');
   
-  const subtitles: string[] = [];
-  
   // Common subtitle naming patterns
   const patterns = [
     // Same name with different extensions

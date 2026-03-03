@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type { MediaFile, ScanResult } from '../types';
 import { SUPPORTED_VIDEO_FORMATS } from '../types';
-import { detectLanguage, extractCleanTitle } from './omdbApi';
+import { detectLanguage, extractCleanTitle, searchMovie } from './omdbApi';
 
 // Type for File System Access API
 interface FileSystemHandle {
@@ -155,10 +155,11 @@ export async function scanFolder(
               // Detect language from filename
               const detectedLanguage = detectLanguage(entryName);
               
-              // Use clean title from filename (no API calls)
+              // Use clean title from filename for API search
               const cleanTitleInfo = extractCleanTitle(entryName);
               
-              // Title is extracted from filename, no external API calls
+              // Title is extracted from filename, no external API calls during scan
+              // Metadata (including posters) is fetched lazily when cards are displayed
               const media: MediaFile = {
                 id: generateId(),
                 name: entryName,
@@ -219,6 +220,30 @@ export async function getVideoURL(handle: any): Promise<string> {
 // Revoke video URL to free memory
 export function revokeVideoURL(url: string): void {
   URL.revokeObjectURL(url);
+}
+
+// Fetch and cache movie metadata from OMDB API
+export async function fetchMediaMetadata(title: string, year?: string): Promise<MediaFile['metadata']> {
+  try {
+    const result = await searchMovie(title, year);
+    if (result) {
+      return {
+        title: result.title,
+        year: result.year,
+        plot: result.plot,
+        poster: result.poster,
+        genre: result.genre,
+        director: result.director,
+        actors: result.actors,
+        imdbRating: result.imdbRating,
+        runtime: result.runtime,
+        language: result.language,
+      };
+    }
+  } catch (error) {
+    console.error('Error fetching media metadata:', error);
+  }
+  return undefined;
 }
 
 // Format file size

@@ -17,7 +17,6 @@ function App() {
     currentPlayingMedia,
     setCurrentPlayingMedia,
     loadMediaLibrary,
-    mediaLibrary,
   } = useAppStore();
 
   const [isSearchOverlayOpen, setIsSearchOverlayOpen] = useState(false);

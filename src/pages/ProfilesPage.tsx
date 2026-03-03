@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { useAppStore } from '../stores/appStore';
 import { Icon } from '../components/common/Icon';
 import { Button } from '../components/common/Button';
@@ -23,8 +23,12 @@ export const ProfilesPage: React.FC = () => {
     setCurrentProfile, 
     addProfile, 
     removeProfile,
-    loadProfiles 
+    loadProfiles
   } = useAppStore();
+  
+  useEffect(() => {
+    loadProfiles();
+  }, [loadProfiles]);
   
   const [isCreating, setIsCreating] = useState(false);
   const [editingProfile, setEditingProfile] = useState<Profile | null>(null);

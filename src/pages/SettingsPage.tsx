@@ -33,7 +33,7 @@ export const SettingsPage: React.FC = () => {
   } = useAppStore();
   
   const [settings, setSettings] = useState<AppSettings | null>(null);
-  const [isSaving, setIsSaving] = useState(false);
+  const [, setIsSaving] = useState(false);
 
   // Load settings on mount
   useEffect(() => {

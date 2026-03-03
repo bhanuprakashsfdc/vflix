@@ -2,7 +2,7 @@ import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { useAppStore } from '../stores/appStore';
 import { MediaCard } from '../components/media/MediaCard';
 import { Icon } from '../components/common/Icon';
-import type { MediaFile, MediaFilter } from '../types';
+import type { MediaFile } from '../types';
 
 type ViewMode = 'grid' | 'list';
 type SortOption = 'name' | 'date' | 'size' | 'lastPlayed';
