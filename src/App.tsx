@@ -4,6 +4,10 @@ import { Navbar } from './components/layout/Navbar';
 import { SearchOverlay } from './components/layout/SearchOverlay';
 import { VideoPlayer } from './components/player/VideoPlayer';
 import { HomePage } from './pages/HomePage';
+import { BrowsePage } from './pages/BrowsePage';
+import { ProfilesPage } from './pages/ProfilesPage';
+import { SettingsPage } from './pages/SettingsPage';
+import { StatsPage } from './pages/StatsPage';
 import type { MediaFile } from './types';
 
 function App() {
@@ -50,42 +54,13 @@ function App() {
       default:
         return <HomePage />;
       case 'browse':
-        return <HomePage />; // For now, browse uses home
+        return <BrowsePage />;
+      case 'profiles':
+        return <ProfilesPage />;
       case 'settings':
-        return (
-          <div className="min-h-screen bg-netflix-background pt-24 px-4">
-            <div className="max-w-4xl mx-auto">
-              <h1 className="text-3xl font-heading text-white mb-8">Settings</h1>
-              
-              <div className="space-y-6">
-                {/* Media Library */}
-                <div className="bg-netflix-dark rounded-lg p-6">
-                  <h2 className="text-xl text-white mb-4">Media Library</h2>
-                  <p className="text-netflix-gray mb-4">
-                    {mediaLibrary.length} items in your library
-                  </p>
-                  <button
-                    onClick={() => useAppStore.getState().selectMediaFolder()}
-                    className="px-4 py-2 bg-netflix-red text-white rounded-md hover:bg-red-700 transition-colors"
-                  >
-                    Scan Folder
-                  </button>
-                </div>
-
-                {/* About */}
-                <div className="bg-netflix-dark rounded-lg p-6">
-                  <h2 className="text-xl text-white mb-4">About</h2>
-                  <p className="text-netflix-gray">
-                    Netflix Clone - Your personal local media player
-                  </p>
-                  <p className="text-netflix-gray text-sm mt-2">
-                    Supports: .mp4, .mkv, .webm, .avi, .mov
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        );
+        return <SettingsPage />;
+      case 'stats':
+        return <StatsPage />;
     }
   };
 

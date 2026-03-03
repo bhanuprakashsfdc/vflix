@@ -1,4 +1,4 @@
-import React, { useRef, useState, useCallback } from 'react';
+import React, { useRef, useState, useCallback, useEffect } from 'react';
 import type { MediaFile } from '../../types';
 import { MediaCard } from './MediaCard';
 import { Icon } from '../common/Icon';
@@ -14,6 +14,22 @@ export const MovieRow: React.FC<MovieRowProps> = ({ title, media, onPlay, showPr
   const rowRef = useRef<HTMLDivElement>(null);
   const [showLeftButton, setShowLeftButton] = useState(false);
   const [showRightButton, setShowRightButton] = useState(true);
+  const [visibleCount, setVisibleCount] = useState(6);
+
+  // Calculate visible items based on screen width
+  useEffect(() => {
+    const updateVisibleCount = () => {
+      if (!rowRef.current) return;
+      const cardWidth = 200; // Approximate card width
+      const containerWidth = rowRef.current.offsetWidth;
+      const count = Math.floor(containerWidth / cardWidth) + 2;
+      setVisibleCount(Math.min(count, media.length));
+    };
+
+    updateVisibleCount();
+    window.addEventListener('resize', updateVisibleCount);
+    return () => window.removeEventListener('resize', updateVisibleCount);
+  }, [media.length]);
 
   const scroll = useCallback((direction: 'left' | 'right') => {
     if (!rowRef.current) return;
