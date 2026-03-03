@@ -1,7 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type { MediaFile, ScanResult } from '../types';
 import { SUPPORTED_VIDEO_FORMATS } from '../types';
-import { detectLanguage, extractCleanTitle, searchMovie } from './omdbApi';
+import { detectLanguage, extractCleanTitle } from './omdbApi';
+import { searchMovie as tmdbSearchMovie } from './tmdbApi';
 
 // Type for File System Access API
 interface FileSystemHandle {
@@ -222,10 +223,10 @@ export function revokeVideoURL(url: string): void {
   URL.revokeObjectURL(url);
 }
 
-// Fetch and cache movie metadata from OMDB API
+// Fetch and cache movie metadata from TMDB API
 export async function fetchMediaMetadata(title: string, year?: string): Promise<MediaFile['metadata']> {
   try {
-    const result = await searchMovie(title, year);
+    const result = await tmdbSearchMovie(title, year);
     if (result) {
       return {
         title: result.title,

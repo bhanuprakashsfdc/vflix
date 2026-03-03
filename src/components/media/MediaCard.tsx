@@ -2,7 +2,7 @@ import React, { useState, useCallback, useEffect } from 'react';
 import type { MediaFile } from '../../types';
 import { Icon } from '../common/Icon';
 import { useAppStore } from '../../stores/appStore';
-import { extractCleanTitle } from '../../utils/omdbApi';
+import { extractCleanTitle } from '../../utils/tmdbApi';
 
 interface MediaCardProps {
   media: MediaFile;
@@ -20,10 +20,19 @@ export const MediaCard: React.FC<MediaCardProps> = ({ media, onPlay, onHover, is
 
   // Fetch metadata from OMDB API when poster is missing
   useEffect(() => {
+    console.log('[MediaCard] Checking metadata:', { 
+      title: media.title, 
+      hasMetadata: !!media.metadata, 
+      isLoading: isLoadingMetadata 
+    });
+    
     if (!media.metadata && !isLoadingMetadata) {
+      console.log('[MediaCard] Fetching metadata for:', media.title);
       setIsLoadingMetadata(true);
       const titleInfo = extractCleanTitle(media.title);
+      console.log('[MediaCard] Clean title:', titleInfo);
       fetchMetadata(media.id, titleInfo.title, titleInfo.year)
+        .then(() => console.log('[MediaCard] Fetch complete for:', media.title))
         .finally(() => setIsLoadingMetadata(false));
     }
   }, [media.id, media.metadata, media.title, fetchMetadata, isLoadingMetadata]);
