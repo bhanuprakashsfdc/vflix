@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import type { MediaFile, PlaybackState } from '../../types';
 import { useAppStore } from '../../stores/appStore';
 import { getVideoURL, revokeVideoURL, formatDuration } from '../../utils/fileSystem';
+import { useSubtitles } from '../../hooks/useSubtitles';
 import { Icon } from '../common/Icon';
 import { Button } from '../common/Button';
 
@@ -33,6 +34,9 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ media, onClose }) => {
   });
   const [showControls, setShowControls] = useState(true);
   
+  // External subtitles hook
+  const { tracks: externalTracks, activeTrack: externalActiveSubtitle, setActiveTrack: setExternalActiveSubtitle } = useSubtitles({ media });
+  
   // New features state
   const [aspectRatio, setAspectRatio] = useState<AspectRatio>('16:9');
   const [audioTracks, setAudioTracks] = useState<AudioTrack[]>([]);
@@ -44,6 +48,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ media, onClose }) => {
   const [showAspectMenu, setShowAspectMenu] = useState(false);
   const [videoZoom, setVideoZoom] = useState<number>(100);
   const [showZoomMenu, setShowZoomMenu] = useState(false);
+  const [isPiP, setIsPiP] = useState(false);
 
   interface AudioTrack {
     kind: string;
@@ -246,13 +251,38 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ media, onClose }) => {
           e.preventDefault();
           toggleFullscreen();
           break;
+        case 'p':
+          e.preventDefault();
+          togglePiP();
+          break;
         case 'c':
+          e.preventDefault();
+          // Toggle subtitles: cycle through Off -> External -> Embedded
+          if (activeSubtitle < 0 && externalActiveSubtitle < 0) {
+            // Both off - try to enable first external or embedded
+            if (externalTracks.length > 0) {
+              setExternalActiveSubtitle(0);
+            } else if (subtitles.length > 0) {
+              handleSubtitleChange(0);
+            }
+          } else if (externalActiveSubtitle >= 0) {
+            // External is on - turn off
+            setExternalActiveSubtitle(-1);
+            // Try to enable embedded if available
+            if (subtitles.length > 0) {
+              handleSubtitleChange(0);
+            }
+          } else if (activeSubtitle >= 0) {
+            // Embedded is on - turn off
+            handleSubtitleChange(-1);
+          }
+          break;
+        case 's':
           e.preventDefault();
           setShowSubtitleMenu(prev => !prev);
           setShowAudioMenu(false);
           setShowAspectMenu(false);
           break;
-        case 'a':
           e.preventDefault();
           setShowAudioMenu(prev => !prev);
           setShowSubtitleMenu(false);
@@ -269,7 +299,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ media, onClose }) => {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [showAudioMenu, showSubtitleMenu, showAspectMenu]);
+  }, [showAudioMenu, showSubtitleMenu, showAspectMenu, activeSubtitle, externalActiveSubtitle, externalTracks.length, subtitles.length]);
 
   // Control functions
   const togglePlay = useCallback(() => {
@@ -313,6 +343,39 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ media, onClose }) => {
       await document.exitFullscreen();
       setPlaybackState(prev => ({ ...prev, isFullscreen: false }));
     }
+  }, []);
+
+  const togglePiP = useCallback(async () => {
+    if (!videoRef.current) return;
+
+    try {
+      if (document.pictureInPictureElement) {
+        await document.exitPictureInPicture();
+        setIsPiP(false);
+      } else {
+        await videoRef.current.requestPictureInPicture();
+        setIsPiP(true);
+      }
+    } catch (err) {
+      console.log('PiP error:', err);
+    }
+  }, []);
+
+  // Handle PiP events
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    const handleEnterPiP = () => setIsPiP(true);
+    const handleLeavePiP = () => setIsPiP(false);
+
+    video.addEventListener('enterpictureinpicture', handleEnterPiP);
+    video.addEventListener('leavepictureinpicture', handleLeavePiP);
+
+    return () => {
+      video.removeEventListener('enterpictureinpicture', handleEnterPiP);
+      video.removeEventListener('leavepictureinpicture', handleLeavePiP);
+    };
   }, []);
 
   const handleClose = useCallback(async () => {
@@ -556,7 +619,21 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ media, onClose }) => {
             onLoadedMetadata={handleLoadedMetadata}
             onCanPlay={handleVideoCanPlay}
             onClick={togglePlay}
-          />
+          >
+            {/* External subtitle tracks */}
+            {externalTracks.map((track, index) => (
+              track.url && (
+                <track
+                  key={`external-${index}`}
+                  kind="subtitles"
+                  label={track.label}
+                  srcLang={track.language}
+                  src={track.url}
+                  default={index === externalActiveSubtitle}
+                />
+              )
+            ))}
+          </video>
         )}
       </div>
 
@@ -640,7 +717,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ media, onClose }) => {
                   setShowAspectMenu(false);
                   setShowZoomMenu(false);
                 }}
-                className={`text-white hover:text-netflix-red transition-colors px-2 py-1 rounded ${activeSubtitle >= 0 ? 'text-netflix-red' : ''}`}
+                className={`text-white hover:text-netflix-red transition-colors px-2 py-1 rounded ${activeSubtitle >= 0 || externalActiveSubtitle >= 0 ? 'text-netflix-red' : ''}`}
                 aria-label="Subtitles"
               >
                 <span className="text-xs font-medium">CC</span>
@@ -648,10 +725,29 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ media, onClose }) => {
               {showSubtitleMenu && renderDropdownMenu(
                 [
                   { label: 'Off', value: -1 },
+                  // External subtitle files
+                  ...externalTracks.map((t, i) => ({ 
+                    label: `📁 ${t.label} (External)`, 
+                    value: `external-${i}` 
+                  })),
+                  // Embedded subtitles
+                  ...(subtitles.length > 0 ? [{ label: '— Embedded —', value: '-divider' as any }] : []),
                   ...subtitles.map(s => ({ label: s.label, value: s.index }))
                 ],
-                activeSubtitle,
-                (val) => handleSubtitleChange(val as number),
+                activeSubtitle >= 0 ? activeSubtitle : (externalActiveSubtitle >= 0 ? `external-${externalActiveSubtitle}` : -1),
+                (val) => {
+                  if (val === -1) {
+                    handleSubtitleChange(-1);
+                    setExternalActiveSubtitle(-1);
+                  } else if (typeof val === 'string' && val.startsWith('external-')) {
+                    const extIndex = parseInt(val.replace('external-', ''));
+                    handleSubtitleChange(-1); // Disable embedded
+                    setExternalActiveSubtitle(extIndex);
+                  } else {
+                    handleSubtitleChange(val as number);
+                    setExternalActiveSubtitle(-1);
+                  }
+                },
                 () => setShowSubtitleMenu(false)
               )}
             </div>
@@ -666,18 +762,55 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ media, onClose }) => {
                   setShowAspectMenu(false);
                   setShowZoomMenu(false);
                 }}
-                className="text-white hover:text-netflix-red transition-colors px-2 py-1 rounded flex items-center gap-1"
+                className={`text-white hover:text-netflix-red transition-colors px-2 py-1 rounded flex items-center gap-1 ${showAudioMenu ? 'bg-white/20' : ''}`}
                 aria-label="Audio tracks"
               >
-                <Icon name="volume" size={16} />
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
+                </svg>
+                <span className="text-xs">
+                  {audioTracks.length > 0 ? audioTracks[activeAudioTrack]?.label || 'Audio' : 'Audio'}
+                </span>
               </button>
-              {showAudioMenu && renderDropdownMenu(
-                audioTracks.length > 0 
-                  ? audioTracks.map(a => ({ label: `${a.label} (${a.language})`, value: a.index }))
-                  : [{ label: 'No audio tracks available', value: -1 }],
-                activeAudioTrack,
-                (val) => handleAudioTrackChange(val as number),
-                () => setShowAudioMenu(false)
+              
+              {/* Netflix-style Audio Menu */}
+              {showAudioMenu && (
+                <div className="absolute bottom-16 right-4 bg-black/95 border border-netflix-gray/30 rounded-lg overflow-hidden min-w-[240px] z-20">
+                  <div className="px-4 py-2 border-b border-netflix-gray/30">
+                    <h3 className="text-white text-sm font-medium">Audio</h3>
+                  </div>
+                  {audioTracks.length > 0 ? (
+                    <div className="py-1">
+                      {audioTracks.map((track, index) => (
+                        <button
+                          key={index}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleAudioTrackChange(index);
+                            setShowAudioMenu(false);
+                          }}
+                          className={`w-full text-left px-4 py-2 text-white hover:bg-netflix-red/80 transition-colors flex items-center justify-between ${
+                            activeAudioTrack === index ? 'text-netflix-red' : ''
+                          }`}
+                        >
+                          <div>
+                            <span className="block">{track.label}</span>
+                            <span className="text-xs text-netflix-gray">{track.language}</span>
+                          </div>
+                          {activeAudioTrack === index && (
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                              <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+                            </svg>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="px-4 py-3 text-netflix-gray text-sm">
+                      No audio tracks available
+                    </div>
+                  )}
+                </div>
               )}
             </div>
 
@@ -748,6 +881,18 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ media, onClose }) => {
               aria-label={playbackState.isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
             >
               <Icon name={playbackState.isFullscreen ? 'fullscreenExit' : 'fullscreen'} size={20} />
+            </button>
+
+            {/* Picture-in-Picture */}
+            <button
+              onClick={togglePiP}
+              className={`text-white hover:text-netflix-red transition-colors p-1 ${isPiP ? 'text-netflix-red' : ''}`}
+              aria-label={isPiP ? 'Exit picture-in-picture' : 'Picture-in-Picture'}
+              title="Picture-in-Picture (P)"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M19 7h-8v6h8V7zm2-4H3c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H3V5h18v14z"/>
+              </svg>
             </button>
           </div>
         </div>

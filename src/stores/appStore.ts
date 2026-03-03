@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import type { MediaFile, Profile, AppSettings, AppState, Category } from '../types';
 import { db } from '../utils/indexedDb';
-import { scanFolder, selectFolder, isFileSystemSupported } from '../utils/fileSystem';
+import { scanFolder, selectFolder, isFileSystemSupported, fetchMediaMetadata } from '../utils/fileSystem';
 
 interface AppStore extends AppState {
   // Actions
@@ -32,6 +32,8 @@ interface AppStore extends AppState {
   
   getSettings: () => Promise<AppSettings>;
   updateSettings: (settings: Partial<AppSettings>) => Promise<void>;
+  
+  fetchMetadata: (mediaId: string, title: string, year?: string) => Promise<void>;
 }
 
 const defaultSettings: AppSettings = {
@@ -243,6 +245,21 @@ export const useAppStore = create<AppStore>((set, get) => ({
     const currentSettings = await get().getSettings();
     const updatedSettings = { ...currentSettings, ...newSettings };
     await db.saveSettings(updatedSettings);
+  },
+
+  fetchMetadata: async (mediaId, title, year) => {
+    const metadata = await fetchMediaMetadata(title, year);
+    if (metadata) {
+      // Update in IndexedDB
+      await db.updateMediaMetadata(mediaId, metadata);
+      
+      // Update in state
+      set((state) => ({
+        mediaLibrary: state.mediaLibrary.map((media) =>
+          media.id === mediaId ? { ...media, metadata } : media
+        ),
+      }));
+    }
   },
 }));
 

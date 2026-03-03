@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { useAppStore } from '../stores/appStore';
 import { Hero } from '../components/media/Hero';
 import { MovieRow } from '../components/media/MovieRow';
@@ -24,6 +24,58 @@ export const HomePage: React.FC = () => {
   const [seriesGroups, setSeriesGroups] = useState<SeriesGroup[]>([]);
   const [featuredMedia, setFeaturedMedia] = useState<MediaFile | null>(null);
   const [selectedSeries, setSelectedSeries] = useState<SeriesGroup | null>(null);
+
+  // Group media by language
+  const languageGroups = useMemo(() => {
+    const groups: Record<string, MediaFile[]> = {};
+    mediaLibrary.forEach(media => {
+      // Use detected language from filename or metadata
+      const lang = media.detectedLanguage || media.metadata?.language || 'Unknown';
+      const langName = lang.split(',')[0].trim();
+      if (!groups[langName]) groups[langName] = [];
+      groups[langName].push(media);
+    });
+    // Filter to only include languages with 3+ items
+    return Object.entries(groups)
+      .filter(([_, items]) => items.length >= 3)
+      .sort((a, b) => b[1].length - a[1].length)
+      .slice(0, 5);
+  }, [mediaLibrary]);
+
+  // Group media by year
+  const yearGroups = useMemo(() => {
+    const groups: Record<string, MediaFile[]> = {};
+    mediaLibrary.forEach(media => {
+      const year = media.metadata?.year || new Date(media.createdAt).getFullYear().toString();
+      if (!groups[year]) groups[year] = [];
+      groups[year].push(media);
+    });
+    return Object.entries(groups)
+      .filter(([_, items]) => items.length >= 2)
+      .sort((a, b) => parseInt(b[0]) - parseInt(a[0]))
+      .slice(0, 6);
+  }, [mediaLibrary]);
+
+  // Extract top actors and group by them
+  const actorGroups = useMemo(() => {
+    const actorMap: Record<string, MediaFile[]> = {};
+    mediaLibrary.forEach(media => {
+      if (media.metadata?.actors) {
+        const actors = media.metadata.actors.split(',').slice(0, 3); // Top 3 actors
+        actors.forEach(actor => {
+          const name = actor.trim();
+          if (name && name !== 'N/A') {
+            if (!actorMap[name]) actorMap[name] = [];
+            actorMap[name].push(media);
+          }
+        });
+      }
+    });
+    return Object.entries(actorMap)
+      .filter(([_, items]) => items.length >= 3)
+      .sort((a, b) => b[1].length - a[1].length)
+      .slice(0, 5);
+  }, [mediaLibrary]);
 
   // Load media library on mount
   useEffect(() => {
@@ -228,6 +280,36 @@ export const HomePage: React.FC = () => {
             }}
           />
         )}
+
+        {/* Language Rows */}
+        {languageGroups.map(([language, items]) => (
+          <MovieRow
+            key={`lang-${language}`}
+            title={`In ${language}`}
+            media={items.slice(0, 20)}
+            onPlay={handlePlay}
+          />
+        ))}
+
+        {/* Year Rows */}
+        {yearGroups.map(([year, items]) => (
+          <MovieRow
+            key={`year-${year}`}
+            title={`From ${year}`}
+            media={items.slice(0, 20)}
+            onPlay={handlePlay}
+          />
+        ))}
+
+        {/* Actor Rows */}
+        {actorGroups.map(([actor, items]) => (
+          <MovieRow
+            key={`actor-${actor}`}
+            title={`Featuring ${actor}`}
+            media={items.slice(0, 20)}
+            onPlay={handlePlay}
+          />
+        ))}
       </div>
     </div>
   );
